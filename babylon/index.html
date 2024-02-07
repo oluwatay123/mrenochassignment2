@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Babylon Template</title>
+
+    <style>
+        html,
+        body {
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        #renderCanvas {
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+    </style>
+
+
+
+
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+    <script src="https://code.jquery.com/pep/0.4.3/pep.js"></script>
+    <script src="https://preview.babylonjs.com/earcut.min.js"></script>
+
+</head>
+
+<body>
+    <babylon id="myViewer" extends="minimal">
+        <canvas id="renderCanvas" touch-action="none">
+            <!-- touch-action="none" for best results from PEP -->
+
+            <script>
+                const canvas = document.getElementById("renderCanvas"); // Get the canvas element
+                const engine = new BABYLON.Engine(canvas, true); // Generate the BABYLON 3D engine
+
+                // Add your code here matching the playground format
+                const createScene = function () {
+                    const scene = new BABYLON.Scene(engine);
+
+                    // Create a box with custom UV coordinates
+                    const faceUV = [];
+                    faceUV[0] = new BABYLON.Vector4(0.5, 0.0, 0.75, 1.0); // Rear face
+                    faceUV[1] = new BABYLON.Vector4(0.0, 0.0, 0.25, 1.0); // Front face
+                    faceUV[2] = new BABYLON.Vector4(0.25, 0, 0.5, 1.0);   // Right side
+                    faceUV[3] = new BABYLON.Vector4(0.75, 0, 1.0, 1.0);  // Left side
+
+                    const box = BABYLON.MeshBuilder.CreateBox("box", { width: 2, height: 1.5, depth: 3, faceUV: faceUV });
+                    //for positioning 
+                    box.position = new BABYLON.Vector3(-3, 0.7, 1);
+                    // for orientation
+                    // box.rotation.y = Math.PI / 4;
+                    // box.rotation.y = BABYLON.Tools.ToRadians(45);
+
+                    const camera = new BABYLON.ArcRotateCamera("camera", -Math.PI / 2, Math.PI / 2.5, 15, new BABYLON.Vector3(0, 0, 0));
+                    camera.attachControl(canvas, true);
+                    const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(1, 1, 0));
+
+                    //create ground
+                    const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 77, height: 20 });
+
+                    ground.position.z = 25
+                    ground.position.x = 25
+                    ground.scaling.z = 2
+                    ground.position.y = -1
+
+
+                    // const sound = new BABYLON.Sound("music", "./music/musics.mp3", scene, null, { loop: true, autoplay: true });
+                    // sound.play()
+
+                    //creating the roof 
+                    const roof = BABYLON.MeshBuilder.CreateCylinder("roof", { diameter: 1.3, height: 1.2, tessellation: 3 });
+                    roof.scaling.x = 1;
+                    roof.scaling.y = 1.7
+                    roof.scaling.z = 3
+                    roof.rotation.z = Math.PI / 2;
+                    roof.position.y = 1.7;
+                    roof.position.x = -3
+                    roof.position.z = 1
+
+                    //creating material and textures
+                    // Load the grass texture
+                    var grassTexture = new BABYLON.Texture("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTRNNAc7IBwl34SoR-e6Xn1vPNvTYqcxhSzSQ&usqp=CAU", scene);
+
+                    // Create a StandardMaterial for the grass
+                    var grassMaterial = new BABYLON.StandardMaterial("grassMaterial", scene);
+                    grassMaterial.diffuseTexture = grassTexture;
+
+
+                    // Apply the grass material to the ground
+                    ground.material = grassMaterial;
+
+                    //apply texture to roof and house 
+                    const roofMat = new BABYLON.StandardMaterial("roofMat");
+                    roofMat.diffuseTexture = new BABYLON.Texture("https://assets.babylonjs.com/environments/roof.jpg", scene);
+                    const boxMat = new BABYLON.StandardMaterial("boxMat");
+                    boxMat.diffuseTexture = new BABYLON.Texture("https://assets.babylonjs.com/environments/cubehouse.png");
+                    //apply
+                    roof.material = roofMat;
+                    box.material = boxMat;
+
+
+                    //combinig mesh 
+
+                    const house = BABYLON.Mesh.MergeMeshes([box, roof], true, false, null, false, true);
+
+                    //create another one 
+                    instanceHouse = house.createInstance("instanceHouse")
+
+                    instanceHouse.position.x = -9
+                    // instanceHouse.position.y =2
+                    instanceHouse.position.z = 10
+
+
+
+                    // generate houses at random
+                    const createHouseGrid = function (rows, cols, distanceBetweenHouses) {
+                        // Create an array to hold instances
+                        var instances = [];
+
+                        // Loop through rows
+                        for (var i = 0; i < rows; i++) {
+                            // Loop through columns
+                            for (var j = 0; j < cols; j++) {
+                                // Create an instance of the house
+                                var newInstance = house.createInstance("instanceHouse" + (i * cols + j));
+
+                                // Calculate position based on grid and distanceBetweenHouses
+                                var xPosition = j * distanceBetweenHouses;
+                                var zPosition = i * distanceBetweenHouses;
+
+                                // Set the position of the instance
+                                newInstance.position.x = xPosition;
+                                newInstance.position.z = zPosition;
+
+                                // Push the instance to the array
+                                instances.push(newInstance);
+                            }
+                        }
+
+
+                        return instances;
+                    };
+
+
+                    createHouseGrid(3, 6, 10)
+                    //creating the car
+
+                    //base
+                    const outline = [
+                        new BABYLON.Vector3(-0.3, 0, -0.1),
+                        new BABYLON.Vector3(0.2, 0, -0.1),
+                    ]
+
+                    //curved front
+                    for (let i = 0; i < 20; i++) {
+                        outline.push(new BABYLON.Vector3(0.2 * Math.cos(i * Math.PI / 40), 0, 0.2 * Math.sin(i * Math.PI / 40) - 0.1));
+                    }
+
+                    //top
+                    outline.push(new BABYLON.Vector3(0, 0, 0.1));
+                    outline.push(new BABYLON.Vector3(-0.3, 0, 0.1));
+
+                    //creating car
+                    const car = BABYLON.MeshBuilder.ExtrudePolygon("car", { shape: outline, depth: 0.2 });
+
+
+
+
+
+                    car.rotation.x = 4.7
+                    car.position.y = 0.2
+                    car.rotation.z = -1.6
+                    car.position.x = 15
+
+                    const wheelRB = BABYLON.MeshBuilder.CreateCylinder("wheelRB", { diameter: 0.125, height: 0.05 })
+                    wheelRB.parent = car;
+                    wheelRB.position.z = -0.1;
+                    wheelRB.position.x = -0.2;
+                    wheelRB.position.y = 0.035;
+
+                    const wheelRF = wheelRB.clone("wheelRF");
+                    wheelRF.position.x = 0.1;
+
+                    const wheelLB = wheelRB.clone("wheelLB");
+                    wheelLB.position.y = -0.2 - 0.035;
+
+                    const wheelLF = wheelRF.clone("wheelLF");
+                    wheelLF.position.y = -0.2 - 0.035;
+
+                    //car material
+
+
+                    // Define materials
+                    const carMaterial = new BABYLON.StandardMaterial("carMaterial", scene);
+                    carMaterial.diffuseColor = new BABYLON.Color3(0.5, 0.5, 0.5); // Gray color for the car body
+
+                    const windowMaterial = new BABYLON.StandardMaterial("windowMaterial", scene);
+                    windowMaterial.diffuseColor = new BABYLON.Color3(0.8, 0.8, 0.8); // Light gray color for windows
+
+                    const wheelMaterial = new BABYLON.StandardMaterial("wheelMaterial", scene);
+                    wheelMaterial.diffuseColor = new BABYLON.Color3(0.2, 0.2, 0.2); // Dark gray color for wheels
+
+
+                    // faceUV[0] = new BABYLON.Vector4(0, 0.5, 0.38, 1);
+                    // faceUV[2] = new BABYLON.Vector4(0.38, 1, 0, 0.5);
+                    // faceUV[1] = new BABYLON.Vector4(0, 0, 1, 0.5);
+
+                    //animating the tire 
+                    const animWheel = new BABYLON.Animation("wheelAnimation", "rotation.y", 30, BABYLON.Animation.ANIMATIONTYPE_FLOAT, BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE);
+
+                    const wheelKeys = [];
+
+                    //At the animation key 0, the value of rotation.y is 0
+                    wheelKeys.push({
+                        frame: 0,
+                        value: 0
+                    });
+
+                    //At the animation key 30, (after 1 sec since animation fps = 30) the value of rotation.y is 2PI for a complete rotation
+                    wheelKeys.push({
+                        frame: 30,
+                        value: 2 * Math.PI
+                    });
+
+
+
+                    //set the keys
+                    animWheel.setKeys(wheelKeys);
+
+                    //Link this animation to the right back wheel
+                    wheelRB.animations = [];
+                    wheelRB.animations.push(animWheel);
+
+                    //Begin animation - object to animate, first frame, last frame and loop if true
+                    scene.beginAnimation(wheelRB, 0, 30, true);
+
+                    scene.beginAnimation(wheelRF, 0, 30, true);
+                    scene.beginAnimation(wheelLB, 0, 30, true);
+                    scene.beginAnimation(wheelLF, 0, 30, true);
+
+                    BABYLON.SceneLoader.ImportMeshAsync("", "url to model car", "car.babylon").then(() => {
+                        const wheelRB = scene.getMeshByName("wheelRB");
+                        const wheelRF = scene.getMeshByName("wheelRF");
+                        const wheelLB = scene.getMeshByName("wheelLB");
+                        const wheelLF = scene.getMeshByName("wheelLF");
+
+                        scene.beginAnimation(wheelRB, 0, 30, true);
+                        scene.beginAnimation(wheelRF, 0, 30, true);
+                        scene.beginAnimation(wheelLB, 0, 30, true);
+                        scene.beginAnimation(wheelLF, 0, 30, true);
+                    });
+
+
+                    //animate car
+                    const animCar = new BABYLON.Animation("carAnimation", "position.z", 30, BABYLON.Animation.ANIMATIONTYPE_FLOAT, BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE);
+
+                    const carKeys = [];
+
+                    carKeys.push({
+                        frame: 0,
+                        value: -10
+                    });
+
+                    carKeys.push({
+                        frame: 700,
+                        value: 200
+                    });
+
+                    carKeys.push({
+                        frame: 210,
+                        value: 20
+                    });
+
+                    animCar.setKeys(carKeys);
+
+                    car.animations = [];
+                    car.animations.push(animCar);
+
+                    scene.beginAnimation(car, 0, 120, true);
+                    //creating the character 
+
+
+
+
+                    //better environment
+
+
+                    //Create Village ground
+                    const groundMat = new BABYLON.StandardMaterial("groundMat");
+                    groundMat.diffuseTexture = new BABYLON.Texture("url to ground texture");
+                    groundMat.diffuseTexture.hasAlpha = true;
+
+
+
+                    //large ground
+                    const largeGroundMat = new BABYLON.StandardMaterial("largeGroundMat");
+                    largeGroundMat.diffuseTexture = new BABYLON.Texture("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQKQG9R0ryY4Ff0E2iavlo-pO2F4RHzSjRMvA&usqp=CAU");
+
+                    const largeGround = BABYLON.MeshBuilder.CreateGroundFromHeightMap("largeGround", "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSMB4d2jZtvIACoD8M0GZZOvipDvQUPrXRTTw&usqp=CAU",
+                        { width: 150, height: 150, subdivisions: 11, minHeight: 0, maxHeight: 4 });
+                    largeGround.material = largeGroundMat;
+                    largeGround.position.y = -2;
+
+
+
+                   
+
+
+                    //camera view for sky
+                    camera.upperBetaLimit = Math.PI / 2.2;
+
+
+                    // for trees
+                    const spriteManagerTrees = new BABYLON.SpriteManager("treesManager", "./texture/tree2.png", 2000, { width: 512, height: 1024 }, scene);
+
+                    for (let i = 0; i < 400; i++) {
+                        const tree = new BABYLON.Sprite("tree", spriteManagerTrees);
+                        tree.position.x = Math.random() * (-30);
+                        tree.position.z = Math.random() * 20 + 8;
+                        tree.position.y = 0.5;
+                    }
+
+                    for (let i = 0; i < 200; i++) {
+                        const tree = new BABYLON.Sprite("tree", spriteManagerTrees);
+                        tree.position.x = Math.random() * (25) + 7;
+                        tree.position.z = Math.random() * -100 + 8;
+                        tree.position.y = 0.5;
+                    }
+
+
+
+
+
+
+
+
+
+
+                    return scene;
+                };
+
+                const scene = createScene(); //Call the createScene function
+
+                // Register a render loop to repeatedly render the scene
+                engine.runRenderLoop(function () {
+                    scene.render();
+                });
+
+                // Watch for browser/canvas resize events
+                window.addEventListener("resize", function () {
+                    engine.resize();
+                });
+            </script>
+
+
+
+        </canvas>
+    </babylon>
+</body>
+
+</html>
